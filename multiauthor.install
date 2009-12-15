@@ -1,0 +1,61 @@
+<?php
+function multiauthor_schema() {
+  $schema['multiauthor'] = array(
+    'description' => 'Multiauthor invite information.',
+    'fields' => array(
+      'maid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique multi author ID.',
+      ),
+      'nid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Node for author.',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Invited user',
+      ),
+      'mail' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+        'default' => '',
+        'description' => "User's email address.",
+      ),
+      'fieldname' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'field name this invite will go into.',
+      ),
+      'status' => array(
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'default' => 0,
+        'length' => 20,
+        'description' => 'what status the invite is in',
+      ),
+      'message' => array(
+        'type' => 'text',
+        'description' => "Message to the invited author",
+      ),
+    ),
+    'primary key' => array('maid'),
+  );
+  return $schema;
+}
+
+
+function multiauthor_install() {
+    drupal_install_schema('multiauthor');
+}
+
+function multiauthor_uninstall() {
+    drupal_uninstall_schema('multiauthor');
+}

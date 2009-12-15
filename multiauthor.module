@@ -1,0 +1,570 @@
+<?php
+function multiauthor_perm() {
+    return array('set immediate authors','remove self as author');
+}
+/*
+	implementation of hook_nodeapi
+&$node The node the action is being performed on.
+
+$op What kind of action is being performed. Possible values:
+
+    * "alter": the $node->content array has been rendered, so the node body or teaser is filtered and now contains HTML. This op should only be used when text substitution, filtering, or other raw text operations are necessary.
+    * "delete": The node is being deleted.
+    * "delete revision": The revision of the node is deleted. You can delete data associated with that revision.
+    * "insert": The node is being created (inserted in the database).
+    * "load": The node is about to be loaded from the database. This hook can be used to load additional data at this time.
+    * "prepare": The node is about to be shown on the add/edit form.
+    * "prepare translation": The node is being cloned for translation. Load additional data or copy values from $node->translation_source.
+    * "print": Prepare a node view for printing. Used for printer-friendly view in book_module
+    * "rss item": An RSS feed is generated. The module can return properties to be added to the RSS item generated for this node. See comment_nodeapi() and upload_nodeapi() for examples. The $node passed can also be modified to add or remove contents to the feed item.
+    * "search result": The node is displayed as a search result. If you want to display extra information with the result, return it.
+    * "presave": The node passed validation and is about to be saved. Modules may use this to make changes to the node before it is saved to the database.
+    * "update": The node is being updated.
+    * "update index": The node is being indexed. If you want additional information to be indexed which is not already visible through nodeapi "view", then you should return it here.
+    * "validate": The user has just finished editing the node and is trying to preview or submit it. This hook can be used to check the node data. Errors should be set with form_set_error().
+    * "view": The node content is being assembled before rendering. The module may add elements $node->content prior to rendering. This hook will be called after hook_view(). The format of $node->content is the same as used by Forms API. 
+
+$a3
+
+    * For "view", passes in the $teaser parameter from node_view().
+    * For "validate", passes in the $form parameter from node_validate(). 
+
+$a4
+
+    * For "view", passes in the $page parameter from node_view(). 
+*/
+function multiauthor_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  switch ($op) {
+  }
+}
+
+/*
+	implementation of hook_user
+	$op What kind of action is being performed. Possible values (in alphabetical order):
+
+    * "after_update": The user object has been updated and changed. Use this if (probably along with 'insert') if you want to reuse some information from the user object.
+    * "categories": A set of user information categories is requested.
+    * "delete": The user account is being deleted. The module should remove its custom additions to the user object from the database.
+    * "form": The user account edit form is about to be displayed. The module should present the form elements it wishes to inject into the form.
+    * "insert": The user account is being added. The module should save its custom additions to the user object into the database and set the saved fields to NULL in $edit.
+    * "load": The user account is being loaded. The module may respond to this and insert additional information into the user object.
+    * "login": The user just logged in.
+    * "logout": The user just logged out.
+    * "register": The user account registration form is about to be displayed. The module should present the form elements it wishes to inject into the form.
+    * "submit": Modify the account before it gets saved.
+    * "update": The user account is being changed. The module should save its custom additions to the user object into the database and set the saved fields to NULL in $edit.
+    * "validate": The user account is about to be modified. The module should validate its custom additions to the user object, registering errors as necessary.
+    * "view": The user's account information is being displayed. The module should format its custom additions for display, and add them to the $account->content array. 
+
+&$edit The array of form values submitted by the user.
+
+&$account The user object on which the operation is being performed.
+
+$category The active category of user information being edited.
+*/
+function multiauthor_user($op, &$edit, &$account, $category = NULL) {
+  switch ($op) {
+
+  }
+}
+
+function multiauthor_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'multiauthor'),
+  );
+}
+/**
+ * Implementation of hook_theme().
+ */
+function multiauthor_theme() {
+  return array(
+    'userreference_formatter_invite' => array(
+      'arguments' => array('element'),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_field_formatter_info().
+ */
+function multiauthor_field_formatter_info() {
+  return array(
+    'invite' => array(
+      'label' => t('Invited user'),
+      'field types' => array('userreference'),
+      'multiple values' => CONTENT_HANDLE_CORE,
+    ),
+  );
+}
+
+/**
+ * Theme function for 'default' userreference field formatter.
+ */
+function theme_userreference_formatter_invite($element) {
+  $output = '';
+
+  if (isset($element['#item']['uid']) && $account = user_load(array('uid' => $element['#item']['uid']))) {
+    $output = theme('username', $account);
+  }
+  return $output;
+}
+
+/**
+ * Implementation of hook_widget_info().
+ *
+ * We need custom handling of multiple values for the userreference_select
+ * widget because we need to combine them into a options list rather
+ * than display multiple elements.
+ *
+ * We will use the content module's default handling for default value.
+ *
+ * Callbacks can be omitted if default handing is used.
+ * They're included here just so this module can be used
+ * as an example for custom modules that might do things
+ * differently.
+ */
+function multiauthor_widget_info() {
+  return array(
+    'multiauthor_invite' => array(
+      'label' => t('Multiauthor invite'),
+      'field types' => array('userreference'),
+      'multiple values' => CONTENT_HANDLE_MODULE,
+      'callbacks' => array(
+        'default value' => CONTENT_CALLBACK_DEFAULT,
+      ),
+    ),
+  );
+}
+
+
+/**
+ * Implementation of hook_widget_settings().
+ */
+function multiauthor_widget_settings($op, $widget) {
+  switch ($op) {
+    case 'form':
+      $form = array();
+        $form['autocomplete_match'] = array('#type' => 'hidden', '#value' => $match);
+        $form['size'] = array('#type' => 'hidden', '#value' => $size);
+
+      $form['reverse_link'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Reverse link'),
+        '#default_value' => isset($widget['reverse_link']) ? $widget['reverse_link'] : 0,
+        '#description' => t('If selected, a reverse link back to the referencing node will displayed on the referenced user record.'),
+      );
+      return $form;
+
+    case 'save':
+      return array('autocomplete_match', 'size', 'reverse_link');
+  }
+}
+
+function multiauthor_trim_users($form_element) {
+    global $user;
+    $access = user_access('remove self as author');
+    $access  = 1;
+    foreach($form_element['uid']['uid'] as $key => $val) {
+        if (!is_numeric($key)) continue;
+        if (!$val['#default_value']) {
+            $form_element['uid']['uid'][$key]['#access'] = 0; 
+            $form_element['uid']['uid'][$key]['#type'] = 'hidden';
+        }elseif ($val['#return_value'] == $user->uid && !$access) {
+             $form_element['uid']['uid'][$key]['#prefix'] = '<div style="display:none;">';
+             $form_element['uid']['uid'][$key]['#suffix'] = '</div>';
+             $form_element['uid']['uid'][] = array(
+                '#type'=>'item',
+                '#value'=> $val['#title'],
+             ); 
+        }
+    }
+
+  return $form_element;
+}
+
+
+
+
+function multiauthor_remove_required($form_element, &$form_state) {
+  if(user_access('remove self as author')) {
+    $form_element['#required'] = 0;
+    $form_element['uid']['#required'] = 0;
+    $form_element['uid']['uid']['#required'] = 0;
+  }
+  return $form_element;
+}
+function multiauthor_submit($form, &$form_state) {
+    $node =  node_load($form_state['values']['nid']);
+    if (!$form_state['#field_info']) return;
+    foreach ($form_state['#field_info'] as $field =>$values) {
+        if ($values['widget']['type'] == 'multiauthor_invite') {
+            $authors = array();
+            if (is_array($node->$field)) {
+                foreach ($node->$field as $key=>$val) $authors[] = $va['uid'];
+            }
+            
+            $message = $form_state['clicked_button']['#post'][$field]['message'];
+            $now = $form_state['clicked_button']['#post'][$field]['skip'];
+            if ($now) $status = 'immediate';
+            else $status='pending';
+            $mails = _multiauthors_get_user_mail($form_state['clicked_button']['#post'][$field]['invitees']);
+            foreach($mails['mail'] as $key=>$value) {
+                if (($uid =db_result(db_query("SELECT uid from users where mail='%s'",$value)))) {
+                   if (in_array($uid, $authors)) continue; 
+                   if (!$now) multiauthor_send_invite_user($uid, $node,$field,$message, 'pending',$value);
+                   else {
+                     multiauthor_add(array('nid'=>$node->nid,'uid'=>$uid,'mail'=>$value,
+                            'field'=>$field,'status'=>'accepted','message'=>$message));
+                    $node->{$field}[] = array('uid'=>$uid);
+                    $form_state['values'][$field][]['uid'] = $uid;  
+                    $resave =1; 
+                    
+                   }
+                } else {
+                    multiauthor_send_invite_mail($value, $node,$field,$message, 'pending');
+                    // send invite
+                }
+            }
+            foreach($mails['usernames'] as $key=>$value) {
+                if (($uid =db_result(db_query("SELECT uid from users where name='%s'",$value)))) {
+                     if (in_array($uid, $authors) || (multiauthor_get_invite(user_load($uid),$node,array('pending')))) continue;
+                   if (!$now) {
+                        multiauthor_send_invite_user($uid, $node,$field,$message,$status);
+                    } else {
+                        multiauthor_add(array('nid'=>$node->nid,'uid'=>$uid,'mail'=>'',
+                            'field'=>$field,'status'=>'accepted','message'=>$message));
+                        $node->{$field}[] = array('uid'=>$uid);
+                        $resave =1;
+                    }
+                    
+                } else {
+                    drupal_set_message(t('Was not able to find user %user',array('%user'=>$value)),'error');
+                }
+            }
+        }
+    }
+    if ($resave){
+     node_save($node);
+    }
+}
+
+function multiauthor_send_invite_user($uid,$node,$field,$message='',$status='pending',$mail='') {
+    $account = user_load($uid);
+    drupal_mail('multiauthor', 'invite', db_result(db_query("SELECT mail from users where uid=%d",$uid)), $account->language, 
+        array('node'=>$node,'invitee'=>$account,'message'=>$message));
+    multiauthor_add(array('nid'=>$node->nid,'uid'=>$uid,'mail'=>$mail,'field'=>$field,'status'=>$status,'message'=>$message));
+}
+
+function multiauthor_send_invite_mail($mail,$node,$field,$message='') {
+    global $user;
+    if (db_result(db_query("SELECT maid from {multiauthor} where mail='%s' and nid=%d and status in ('pending','immediate')",array($mail,$node->nid))) ) return;
+     $message .="\nYou've been invited to help author the vision !title.\n After you register you'll be presented with a link to accept or decline authorship.";
+        $form = array();
+    $form_state = array();
+    if ($user->uid && variable_get('invite_use_users_email', 0)) {
+      $from = $user->mail;
+    }
+    else {
+      $from = variable_get('site_mail', ini_get('sendmail_from'));
+    }
+    $form_state['values']['subject'] =invite_get_subject();
+    $form_state['values']['from'] = $from;
+    $form_state['values']['email'] = $mail;
+    $form_state['values']['valid_emails'] =array($mail);
+    $form_state['values']['message']=t($message,array('!title'=>$node->title));
+    $form_state['values']['remaining_invites']= $user_data[$user->uid]['remaining_invites'] = invite_get_remaining_invites($user);
+    invite_form_submit($form, $form_state);
+    multiauthor_add(array('nid'=>$node->nid,'uid'=>0,'mail'=>$mail,'field'=>$field,'status'=>$status,'message'=>$message));
+}
+/*
+borrowed from invite module
+*/
+function _multiauthors_get_user_mail($string) {
+  $valid_emails = $usernames = array();
+  $user = '[a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+';
+  $domain = '(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+';
+  $ipv4 = '[0-9]{1,3}(\.[0-9]{1,3}){3}';
+  $ipv6 = '[0-9a-fA-F]{1,4}(\:[0-9a-fA-F]{1,4}){7}';
+  $rx = "/($user@($domain|(\[($ipv4|$ipv6)\])))>?$/";
+
+  $emails = array_unique(split("[,\n\r]", $string));
+  foreach ($emails as $email) {
+    $email = trim($email);
+    if ($email) {
+      if (preg_match($rx, $email, $match)) {
+        $valid_emails[] = $match[1];
+      }
+      else {
+        $usernames[] = $email;
+      }
+    }
+  }
+  return array('mail'=>$valid_emails,'usernames'=>$usernames);
+}
+/**
+ * Implementation of hook_widget().
+ *
+ * Attach a single form element to the form. It will be built out and
+ * validated in the callback(s) listed in hook_elements. We build it
+ * out in the callbacks rather than here in hook_widget so it can be
+ * plugged into any module that can provide it with valid
+ * $field information.
+ *
+ * Content module will set the weight, field name and delta values
+ * for each form element. This is a change from earlier CCK versions
+ * where the widget managed its own multiple values.
+ *
+ * If there are multiple values for this field, the content module will
+ * call this function as many times as needed.
+ *
+ * @param $form
+ *   the entire form array, $form['#node'] holds node information
+ * @param $form_state
+ *   the form_state, $form_state['values'][$field['field_name']]
+ *   holds the field's form values.
+ * @param $field
+ *   the field array
+ * @param $items
+ *   array of default values for this field
+ * @param $delta
+ *   the order of this item in the array of subelements (0, 1, 2, etc)
+ *
+ * @return
+ *   the form item for a single element for this field
+ */
+function multiauthor_widget(&$form, &$form_state, $field, $items, $delta = 0) {
+    global $user; 
+  switch ($field['widget']['type']) {
+    case 'multiauthor_invite':
+      $element =array(
+        '#type' => 'userreference_buttons',
+        '#default_value' => $items,
+        '#element_validate'=> array('multiauthor_authors'),
+        '#pre_render'=>array('multiauthor_trim_users'),
+        '#after_build'=>array('multiauthor_remove_required'),
+      );
+      //if (!$form['#submit']) $form['#submit'][] = 'node_form_submit';
+      $form['#submit'][] = 'multiauthor_submit';
+      
+      if (user_access('set immediate authors')) {
+        $element['skip'] = array(
+        '#type' => 'checkbox',
+        '#title' => 'Skip acceptance stage and immediately set users as authors',
+        '#default_value' => 0,
+        '#weight'=> .5,
+        );
+      } 
+      if ($form['#node']->nid) {
+        $invitees = array('mail'=>array(),'name'=>array());
+        $result = db_query('SELECT * from {multiauthor} where nid=%d and status in ("pending","immediate")',$form['#node']->nid);
+        while($row=db_fetch_object($result)) {
+            if ($row->mail)$invitees['mail'][] = $row->mail;
+            elseif($row->uid) $invitees['name'][] = db_result(db_query("SELECT name from {users} where uid=%d",$row->uid));
+          }
+          if ($invitees['mail'] || $invitees['name']) {
+              $element['pending_invitees'] = array(
+                '#type'=>'item',
+                '#default_value'=>'',
+                '#description'=> implode(", ",array_merge($invitees['mail'], $invitees['name']) ),
+                '#title'=> t('Pending Invitees'),
+                '#weight'=> 1,
+              );
+          }
+      }
+      $element['invitees'] = array(
+        '#type'=>'textarea',
+        '#default_value'=>'',
+        '#title'=> t('Email addresses or user names to invite'),
+        '#weight'=> 1,
+      );
+      $element['message'] = array(
+        '#type'=>'textarea',
+        '#description'=>'A message to send to the invited authors.',
+        '#default_value'=>'',
+        '#title'=> t('Message'),
+        '#weight'=> 1,
+      );
+      //['#element_validate']
+      break;
+  }
+  return $element;
+}
+  
+function multiauthor_status_get($id= null) {
+    static $status = array('withdrawn'=>'Withdrawn','pending'=>'Pending','immediate'=>'Pending', 'accepted'=>'Accepted', 'dismissed'=>'Dismissed', 'withdrawn_accepted'=>'Withdrawn accepted');
+    if ($id) return $status[$id];
+    else return $status;
+}
+
+function multiauthor_add($info){
+    if (!is_numeric($info['uid'])) $info['uid'] = db_result(db_query("SELECT uid from {users} where name='%s' || mail='%s'",array($info['uid'],$info['mail'])));
+    if(!$info['status']) $info['status'] = 'pending';
+    if(!db_result(db_query('SELECT maid from {multiauthor} where (( uid=%d AND uid>0 ) OR (mail="%s" AND uid=0)) AND status="pending"',array($info['uid'],$info['mail'])))) {
+        db_query("INSERT into {multiauthor} (nid, uid, mail,fieldname, status,message) VALUES (%d, %d, '%s','%s', '%s','%s')", 
+                array($info['nid'],$info['uid'],$info['mail'],$info['field'],$info['status'],$info['message']));
+    } else {
+        drupal_set_message('Invite already sent'); 
+    }
+}
+
+function multiauthor_set($info){
+    if (!is_array($info)) $info = (array)$info;
+    if (!is_numeric($info['uid'])) $info['uid'] = db_result(db_query("SELECT uid from users where name='%s' || mail='%s'",array($info['uid'],$info['mail'])));
+    db_query("UPDATE {multiauthor} SET uid=%d, nid=%d, mail='%s',fieldname='%s',status=%d,message'%s' where maid = %d", 
+        array($info['nid'],$info['uid'],$info['mail'],$info['field'],$info['status'],$info['message'],$info['maid']));
+}
+function multiauthor_set_status($maid, $status,$invite=null){
+    db_query("UPDATE {multiauthor} SET status='%s' where maid=%d", array($status,$maid));
+    if ($invite)drupal_set_message(t("Invite %status",array('%status'=>multiauthor_status_get($status))));
+}
+function multiauthor_mail($key, &$message, $params) { 
+    $language = $message['language']; 
+    $variables = multiauthor_mail_tokens($params['node'],$params['invitee'],$params['message'], $language); 
+    switch($key) { 
+        case 'invite': 
+            $message['subject'] = t('Vision authorship invite from !site', $variables, $language->language); 
+            $message['body'][] = t("Dear !username\n\nYou've been invited, by !inviter, to author the vision, !node_title (!node_uri).\n\n Please login at !login_uri and you'll be presented with a acceptance link. \n\n--\n\n!message", $variables, $language->language);
+        break; 
+     }
+}
+
+
+function multiauthor_mail_tokens($node,$invitee, $message, $language) {
+  global $user;
+  $tokens = array(
+    '!username' => $invitee->name,
+    '!inviter' => $user->name,
+    '!node_title'=>$node->title,
+    '!node_uri'=>url('node/'.$node->nid, array('absolute' => TRUE, 'language' => $language)),
+    '!site' => variable_get('site_name', 'Drupal'),
+    '!login_url' => user_pass_reset_url($account),
+    '!message' => t($message),
+    '!date' => format_date(time(), 'medium', '', NULL, $language->language),
+    '!login_uri' => url('user', array('absolute' => TRUE, 'language' => $language)),
+    '!edit_uri' => url('user/'. $account->uid .'/edit', array('absolute' => TRUE, 'language' => $language)),
+  );
+  return $tokens;
+}
+
+
+function multiauthor_menu() {
+  $items = array();
+
+  $items['multiauthor/accept/%node'] = array(
+    'title' => 'Accept',
+    'description' => 'Accept invite',
+    'page callback' => 'multiauthor_accept',
+    'access callback'=> 'multiauthor_is_invited',
+    'access arguments' => array(2),
+    'page arguments' => array(2),
+    'type' => MENU_CALLBACK,
+  );
+  $items['multiauthor/decline/%node'] = array(
+    'title' => 'Accept',
+    'description' => 'Decline invite',
+    'page callback' => 'multiauthor_decline',
+    'access callback'=> 'multiauthor_is_invited',
+    'access arguments' => array(2),
+    'page arguments' => array(2),
+    'type' => MENU_CALLBACK,
+  ); 
+  $items['multiauthor/withdraw/%maid'] = array(
+    'title' => 'Accept',
+    'description' => 'Decline invite',
+    'page callback' => 'multiauthor_decline',
+    'access callback'=> 'multiauthor_can_withdraw',
+    'access arguments' => array('withdraw',2),
+    'page arguments' => array(2),
+    'type' => MENU_CALLBACK,
+  );   
+  return $items;
+}
+
+function maid_load($id) {
+    return db_fetch_object(db_query("SELECT * from {multiauthor} where maid=%d",$argument));
+}
+function multiauthor_access($op,$maid,$account=null){
+    global $user ;
+    if (!$account) $account=$user;
+    switch($op) {
+        case 'withdraw':
+            $node = node_load($maid->nid);
+            return node_access('update',$node,$account);
+            break;
+        case 'accept':
+        case 'decline':
+            return true;
+        break;                 
+    }
+    
+}
+function multiauthor_accept($node) {
+
+    global $user; 
+    $authors =array();
+    $fieldname = 
+    $invite = multiauthor_get_invite(null,$node,array('pending'));
+    if (!$invite->fieldname) return t('Error processing');
+    $fieldname= $invite->fieldname;
+    if (isset($node->$fieldname) && is_array($node->$fieldname)) {
+      foreach($node->$fieldname as $key=>$val) {
+        $authors[] = $val['uid'];
+      }
+    } else {
+      $node->$fieldname = array();
+    }
+    if (!in_array($user->uid,$authors)) {
+        $node->{$fieldname}[] = array('uid'=>$user->uid);
+        node_save($node); 
+    }
+    multiauthor_set_status($invite->maid,'accepted');
+    drupal_goto('node/'.$node->nid);
+}
+
+function multiauthor_decline($node) {
+    $invite = multiauthor_get_invite(null,$node,array('pending'));
+    multiauthor_set_status($invite->maid,'dismissed');
+    drupal_goto();
+}
+
+function multiauthor_is_invited($node) {
+    
+    return (multiauthor_get_invite(null,$node,array('pending'))?1:0);
+}
+
+function multiauthor_get_invite($account=null,$node=null,$statuses=array()) {
+    global $user;
+    if(!$account) $account = $user;
+    $args = array($account->mail,$account->uid);
+    if ($statuses) {
+        foreach($statuses as $status) {
+            $stats[] ="status ='%s'"; 
+            $args[] = $status; 
+        }
+    }
+    $rows =array();
+    $result = db_query('SELECT * from {multiauthor} where (mail="%s" OR uid=%d) AND ' .($stats?'('.implode(" OR ",$stats).')':''),$args);
+    while ($row = db_fetch_object($result)) {
+      if (empty($row->fieldname)) $row->fieldname = 'field_authors'; 
+        if ($node && $node->nid == $row->nid) {
+          
+            return $row; 
+        }
+        $rows[] = $row;
+    }
+    if (!$node) return $rows;
+}
+
+function multiauthor_init() {
+    global $user;
+    
+    if ($user->uid && arg(0) != 'multiauthor') {
+        $invites = multiauthor_get_invite(null,null,array('pending')) ;
+        
+        foreach($invites as $key=>$invite) {
+            $node = node_load($invite->nid);
+            drupal_set_message(t("You've been invited to help author %title.\n Click here to !accept or !decline this authorship.",array('%title'=>$node->title,'!accept'=>l('accept','multiauthor/accept/'.$node->nid),'!decline'=>l('decline','multiauthor/decline/'.$node->nid))));
+        } 
+    }
+}

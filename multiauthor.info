@@ -1,0 +1,4 @@
+name = Multi author tools
+description = Multi author functionality 
+core = 6.x
+dependencies[] = userreference
